@@ -1,50 +1,30 @@
 #include <iostream>
-#include <string>
 using namespace std;
 
-struct NodeErr {string msg; NodeErr(string w){msg=w;};};
-class node {
-      node* init;
+template <class T> class node {
       node* prev;
       node* next;
-      string word;
+      T word;
       
       public:
-            string getWord() {return word;};
+             ~node(){if(this->prev != 0)
+                       this->prev->next = this->next;
+                     if(this->next != 0)
+                       this->next->prev = this->prev;};
+            T getWord() {return word;};
             
-            node* getNext()  {if (this->next!=0) return next; else throw NodeErr("Not a next node");};
+            node* getNext()  {return next;};
             
-            node* getPrev()  {if (this->prev!=0) return prev; else throw NodeErr("Not a previous node.");};
+            node* getPrev()  {return prev;};
             
-            /*node* getFirst(){    node* point = init; 
-                                 while((point->next!=0)) point = point->next;
-                                 return point;
-                                 };
-                                 
-            node* getLast() {    node * point = init;
-                                 while(point->prev!=0) point = point->prev;
-                                 return point;
-                                 };
-            */                     
-            node(string w = "Node"): prev(0), next(0), word(w) {init = this;};
+            node(T w): prev(0), next(0), word(w) {};
             
-            node(node* point, string w = "Bird", bool toright = true)
+            node(node* point, T w)
                        {
-                              if (toright == true)
-                                     {
                                      this->word = w;
                                      point->next = this;
                                      this->prev = point;
                                      this->next = 0;
-                                     }
-                              else
-                                     {
-                                     this->word = w;
-                                     point->prev = this;
-                                     this->next = point;
-                                     this->prev = 0;
-                                       
-                                     };
                        };
                        
             void clear() {
@@ -57,50 +37,52 @@ class node {
                  
                  delete this;
                  };
-            node(node* left,node* right,string w = "Sfinos")
-            {
-            if ( (left->next != right) || (right->prev != left) ) throw NodeErr("Bad_Constructor");   
-            left->next = this;
-            right->prev = this;
-            this-> prev = left;
-            this-> next = right;
-            word = w;                
-            }
+                 
+            node(node* left,node* right,T w)   {
+                if (!( (left->next != right) || (right->prev != left) ))
+                {   
+                    left->next = this;
+                    right->prev = this;
+                    this-> prev = left;
+                    this-> next = right;
+                    word = w; 
+                }               
+                    }
       };
       
       int main() {
-          node* a = new node("Bird");
-          node* b = new node(a,"is");
-          node* c = new node(b,"the");
-          node* d = new node(c,"word");
+          node<char*>* a = new node<char*>("Bird");
+          node<char*>* b = new node<char*>(a,"is");
+          node<char*>* c = new node<char*>(b,"the");
+          node<char*>* d = new node<char*>(c,"word");
+          
+          node<char*>* e = new node<char*>(d,"testing!");
+          
           cout << a->getWord() << " " << b->getWord() << " " << c->getWord() << " " << d->getWord() << "!" << endl;
           cout << a->getWord() << " " << a->getNext()->getWord() << " " << a->getNext()->getNext()->getWord() << " " << a->getNext()->getNext()->getNext()->getWord() << "!" << endl;
           cout << a->getNext()->getPrev()->getWord() << endl;
           
-          node* e = new node(d,"testing!");
+          node<char*>* cd = new node<char*>(c,d,"ultimate");
           
-          try{
-          d->getNext();
-          } catch(NodeErr& e) {cout<<e.msg<<endl<<endl;};
-          
-          for(node* iter = a;1;)
+          node<char*>* iter = a;
+          while(iter)
                    {
                    cout << iter->getWord() << " ";
-                   try{iter = iter->getNext();}
-                   catch (...) {cout<<endl<<endl; break; }
+                   iter = iter->getNext();
                    };
-          
-          cout<<"Modifying"<<endl<<endl;
-          node* cd = new node(c,d,"ultimate");
-          
                    
-          for(node* iter = a;1;)
+          cout << endl << "Editing. Removing 'the'" << endl;
+          delete c;
+          
+          iter = a;
+          while(iter)
                    {
                    cout << iter->getWord() << " ";
-                   try{iter = iter->getNext();}
-                   catch (...) {cout<<endl<<endl; break; }
+                   iter = iter->getNext();
                    };
           
+          
+          cout<<endl<<endl<<endl;
           system("pause");
           return 0;
           }
