@@ -1,0 +1,71 @@
+@echo off
+SETLOCAL ENABLEDELAYEDEXPANSION
+
+
+set pic=%~nx1
+set one=null
+set two=null
+set three=null
+set flag=null
+
+IF "%pic%"=="" ( goto :exit
+)
+
+
+for %%x in (%pic:_= %) do (
+
+if !three!==null (
+	if !flag!==t (
+	set three=%%x
+	set flag=end
+	)
+)
+
+if !two!==null (
+    if !flag!==s (
+	set two=%%x
+	set flag=t
+	)
+)
+
+if !one!==null (
+    if !flag!==null (
+	set one=%%x
+	set flag=s
+	)
+)
+
+)
+
+IF NOT !three!==null (
+echo.%one%
+echo.%two%
+echo.%three%
+
+echo.
+echo.%one% %two% %three%
+
+start www.facebook.com/%one%
+start www.facebook.com/%two%
+start www.facebook.com/%three%
+)
+
+IF !three!==null (
+echo.%one%
+start http://9gag.com/gag/%one%
+)
+
+goto :eof
+
+:exit
+
+echo.Are you retarded? Drag a fb or a 9GAG pic to me!
+echo.Now hit that button and let me exit!
+pause > nul
+
+:eof
+
+echo.StormRider© <tassosg_1@yahoo.gr> 2013, All rights Reserved
+echo.Obamaself
+
+
