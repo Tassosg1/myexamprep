@@ -1,0 +1,193 @@
+; Date  : 22/3/14
+; This 'program' in LISP was used to demonstrate the broom's problem, with
+; two rooms which can be either clean or dirty. For Artificial Intelligence
+; class and TEI of Athens, compiled and run on Windows 7 x64 and LispWorks 6.1.1.
+;
+; 
+;The state consisted of 4 elements:
+;
+; The 1st element is the symbol 'broom	
+; The 2nd element is the number of the room the broom is in (1 or 2)
+; The 3rd element states if the 1st room is clean ('clean) or dirty ('dirty)
+; The 4st element states if the 2nd room is clean ('clean) or dirty ('dirty)
+;
+; F.e., the state (broom 1 dirty dirty)  means that the broom is on room 1, and both rooms are dirty.
+
+(setq statedc1 '(broom 1 dirty clean))
+(setq statecc1 '(broom 1 clean clean))
+(setq statecd1 '(broom 1 clean dirty))
+(setq statedd1 '(broom 1 dirty dirty))
+(setq statedc2 '(broom 2 dirty clean))
+(setq statecc2 '(broom 2 clean clean))
+(setq statecd2 '(broom 2 clean dirty))
+(setq statedd2 '(broom 2 dirty dirty))
+
+(defun roomdirty (state) 
+ (when (eql (nth (+ 1 (second state)) state) 'dirty) T) 
+) 
+ ///////////////////PROBLEM SPECIFIC//////////////////////
+(defun clean(state) 
+ (when (roomdirty state) 
+ (substitute 'clean 'dirty state :start (1+(second state)) :count 1) 
+ ) 
+
+) (defun Left (state) 
+ (unless (eql 1 (second state)) 
+ (append `(,(first state), (1- (second state)) ) (cddr state)) 
+ ) 
+)
+
+(defun Right(state) 
+ (unless (eql (second state) (length(cddr state)) ) 
+ (append `(,(first state), (1+ (second state))) (cddr state)) 
+ ) 
+) 
+
+(defun findChildren(state) 
+ (removenils `(,(clean state), (left state), (right state)) ) 
+) 
+////////////////////////////////////////////////////////////
+
+(defun removeNils (x) 
+ (remove NIL x) 
+) 
+
+(defun myMember(needle haystack) 
+ (some #'(lambda(x)(equal needle x)) haystack ) 
+) 
+(defun compare (state target) 
+ (reduce #'+ (mapcar #'(lambda(x y) (if (eql x y) 1 0 )) state target) ) 
+) 
+(defun expand_Metopo (metopo &optional (mode 'DFS) target) 
+ (case mode 
+ ('DFS (append (findChildren (pop metopo)) metopo) ) 
+ ('BFS (append (rest metopo) (findChildren (pop metopo))) ) 
+ ('BestFS (sort (expand_Metopo metopo) #'> :key #'(lambda(x)(compare x target)) ) ) 
+ ) 
+) 
+
+(defun update_Closed (state kleisto) 
+ (push state kleisto) 
+) 
+
+(defun growPath (path) 
+ (mapcar #'(lambda(x) (cons x path)) (findChildren (car path))) 
+) 
+
+(defun extend_Queue(paths &optional (mode 'DFS) target) 
+ (case mode 
+ ('DFS (append (growpath (pop paths)) paths) ) 
+ ('BFS (append (rest paths) (growpath (pop paths))) ) 
+ ('BestFS (sort (extend_Queue paths) #'> :key #'(lambda(x)(compare (first x) target)))) 
+ ) 
+) 
+
+(defun find_Solution (kleisto metopo target mode paths) 
+   (cond 
+        ((endp metopo) 'DEN_YPARXEI_LYSH) 
+        ((equal (first metopo) target) ( reverse (first paths )) ) 
+        ((myMember (first metopo) kleisto) 
+             (find_Solution kleisto (rest metopo) target mode (rest paths) ) 
+        ) 
+        (T 
+             (find_Solution (update_Closed (first metopo) kleisto) 
+                            (expand_Metopo metopo mode target) 
+                             target 
+                             mode 
+                            (extend_Queue paths mode target) 
+             ) 
+        ) 
+   ) 
+) 
+
+(defun init_Problem(start target &optional (mode 'DFS)) 
+ (find_Solution nil `(,start) target mode `(,`(,start)) ) 
+) 
+
+/////////////////////TOTAL//////////////////////////
+
+(defun init_Problem(start target &optional (mode 'DFS)) 
+ (find_Solution nil `(,start) target mode `(,`(,start)) ) 
+) 
+ 
+(defun find_Solution (kleisto metopo target mode paths) 
+ (cond 
+ ((endp metopo) 'DEN_YPARXEI_LYSH) 
+ ((equal (first metopo) target) (reverse(first paths)) ) 
+ ((myMember (first metopo) kleisto) 
+ (find_Solution kleisto (rest metopo) target mode (rest paths) ) 
+ ) 
+ (T 
+ (find_Solution (update_Closed (first metopo) kleisto) 
+ (expand_Metopo metopo mode target) 
+ target 
+mode 
+ (extend_Queue paths mode target) 
+ ) 
+ ) 
+ ) 
+) 
+ 
+(defun myMember(needle haystack) 
+ (some #'(lambda(x)(equal needle x)) haystack ) 
+) 
+ 
+(defun removeNils (x) 
+ (remove NIL x) 
+) 
+ 
+(defun expand_Metopo (metopo &optional (mode 'DFS) target) 
+ (case mode 
+ ('DFS (append (findChildren (pop metopo)) metopo) ) 
+ ('BFS (append (rest metopo) (findChildren (pop metopo))) ) 
+ ('BestFS (sort (expand_Metopo metopo) #'> :key #'(lambda(x)(compare x target)) ) 
+) 
+ ) 
+) 
+ 
+(defun update_Closed (state kleisto) 
+ (push state kleisto) 
+) 
+ 
+(defun growPath (path) 
+ (mapcar #'(lambda(x) (cons x path)) (findChildren (car path))) 
+) 
+ 
+(defun compare (state target) 
+ (reduce #'+ (mapcar #'(lambda(x y) (if (equal x y) 1 0 )) state target) ) 
+) 
+
+(defun extend_Queue(paths &optional (mode 'DFS) target) 
+ (case mode 
+ ('DFS (append (growpath (pop paths)) paths) ) 
+ ('BFS (append (rest paths) (growpath (pop paths))) ) 
+ ('BestFS (sort (extend_Queue paths) #'> :key #'(lambda(x)(compare (first x) target)) 
+ ) ) 
+ )
+)
+
+(defun roomdirty (state) 
+ (when (eql (nth (+ 1 (second state)) state) 'dirty) T) 
+) 
+ 
+(defun Left (state) 
+ (unless (eql 1 (second state)) 
+ (append `(,(first state), (1- (second state)) ) (cddr state)) 
+ ) 
+) 
+ 
+(defun Right(state) 
+ (unless (eql (second state) (length(cddr state)) ) 
+ (append `(,(first state), (1+ (second state))) (cddr state)) 
+ ) 
+) 
+ 
+(defun clean(state) 
+ (when (roomdirty state) 
+ (substitute 'clean 'dirty state :start (1+ (second state)) :count 1) 
+ ) 
+) 
+ 
+(defun findChildren(state) 
+ (removenils `(,(clean state), (left state), (right state)) ) 
+) 
