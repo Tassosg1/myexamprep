@@ -1,0 +1,136 @@
+/* C Example */
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#define TROUBLESHOOTING 0
+
+/*
+    Author: Georgopoulos Anastasios {StormRider}
+    Date  : 30/3/2014
+
+    This is a program which utilizes the MPICH library to synchronize NP proccesses in order to print
+    the average of a table with integers (with length elemnum), as well as the furthest element from
+    the average. The proccesses are synchronized by constant MPI_Send and MPI_Recv's. Finally, the end
+    signal is broadcasted to all processes by the master CPU (0). The exit is triggered by the user so,
+    as a result, the program comes with a selection menu. 
+
+    Compiled with mpicc (gcc) 4.8.1 on Linux Mint (based on Ubuntu 13.10) x64.
+*/
+
+int main (int argc, char* argv[])
+{
+  int rank, np; // number of CPU (CPU specific), np (global)
+  int choice = 1; // user's choice, broadcasted to every CPU on each update.
+  int ** table;
+  int i,k; // Global convention for 'for' loops
+  int ** tableloc;
+  int elemnum;
+
+  MPI_Status status;
+
+  MPI_Init (&argc, &argv);      // starts MPI
+  MPI_Comm_rank (MPI_COMM_WORLD, &rank);        // get current process id 
+  MPI_Comm_size (MPI_COMM_WORLD, &np);        // get number of processes 
+
+  if (TROUBLESHOOTING) printf( "I am CPU %d of %d and I'm initiating!\n", rank, np );
+
+  while (choice != 0) {
+
+    if ( rank == 0 ) {
+      printf("Welcome! Please enter your choice.\n1. Start\n0. Exit\n\nChoice: ");
+      scanf("%d",&choice);
+    }
+      MPI_Bcast(&choice, 1, MPI_INT, 0, MPI_COMM_WORLD);
+      if( choice == 0 ) break;
+  	  if ( rank == 0 ) {
+
+        // ZERO CPU
+        printf("What is the number of the columns / rows (multipliable by %d)?\n",np);
+        scanf("%d",&elemnum);
+        if ( (elemnum % np) != 0 ) {
+            printf("Elements' size are not rounded to the number of proccesses(%d)! Setting to %d.\n",np,elemnum = np*2);}
+      } 
+
+      // ALL CPUs WILL ALLOCATE MEMORY AFTER RECV'ing ELEM. NUMBER
+      MPI_Bcast(&elemnum, 1, MPI_INT, 0, MPI_COMM_WORLD);
+      tableloc = (int**) malloc( (elemnum/np) * sizeof(int*) );
+        for (i = 0;i < (elemnum/np); i++)
+              tableloc[i] = (int*) malloc( elemnum * sizeof(int) );
+        if (tableloc==NULL) exit (1);
+      // END OF BLOCK
+
+      if ( rank == 0) {
+
+        table = (int**) malloc( elemnum * sizeof(int*) );
+        for (i = 0;i < elemnum; i++)
+            table[i] = (int*) malloc( elemnum * sizeof(int) );
+        if (table==NULL) exit(1);
+
+        //FIRST POPULATE THE GLOBAL TABLE
+        for (i = 0; i < elemnum; i++)
+          for (k = 0; k < elemnum; k++) {
+            printf("Insert element in row %d column %d:\n",i,k);
+            scanf("%d",&table[i][k]);
+          }
+        // THEN SEND DATA TO CPUs
+        for (i = 1; i < np; i++) 
+          MPI_Send(&table[i*(elemnum/np)][0],(elemnum/np)*elemnum, MPI_INT, i, 73, MPI_COMM_WORLD);
+        // END OF CPU COMMUNICATION
+
+        //POPULATE MY OWN TABLE
+        for (i = 0; i < (elemnum/np); i++)
+          for (k = 0; k < elemnum; k++)
+            tableloc[i][k] = table[i][k]; 
+    }
+    else {
+        // NON ZERO CPUs RECV'ing
+        MPI_Recv(&tableloc[0],(elemnum/np)*elemnum,MPI_INT,0,73,MPI_COMM_WORLD,&status);
+    }
+
+    // ALL LOCAL TABLES POPULATED, ELEMNUM KNOWN
+
+    // GLOBAL PROCCESSSING (will be run by all CPUs)
+    if (rank == 1)
+      for (i = 0;i < elemnum;i++)
+        printf("CPU%d %d %d: %d\n",rank,rank,i,tableloc[0][i]);
+
+
+
+}
+    // END OF PROCCESSING
+    /*
+    // CONCETRATING RESULTS
+    if (rank != 0) {
+      // NON ZERO CPU
+      MPI_Send(&tempcalc,1,MPI_FLOAT,0,62,MPI_COMM_WORLD);
+      MPI_Send(&localmaxpos,1,MPI_INT,0,63,MPI_COMM_WORLD);
+      MPI_Send(&localminpos,1,MPI_INT,0,64,MPI_COMM_WORLD); }
+    else {
+      // ZERO CPU
+      maxpos = localmaxpos; // setting my numbers as the min and max (assuming)
+      minpos = localminpos;
+      for (i = 1; i < np; i++) {
+        MPI_Recv(&tempres,1,MPI_FLOAT,i,62,MPI_COMM_WORLD, &status);
+        MPI_Recv(&localmaxpos,1,MPI_INT,i,63,MPI_COMM_WORLD, &status);
+        MPI_Recv(&localminpos,1,MPI_INT,i,64,MPI_COMM_WORLD, &status);
+
+        if (data[maxpos] < data[localmaxpos+i*(elemnum/np)]) maxpos = localmaxpos+i*(elemnum/np);
+        if (data[minpos] > data[localminpos+i*(elemnum/np)]) minpos = localminpos+i*(elemnum/np);
+        // was the (relative-converted-to) absolute element's position I recieved better than the one I have?
+        tempcalc += tempres;
+      }
+      avg = tempcalc / np;
+      printf("Average is: %5.3f\n",avg);
+
+      if (TROUBLESHOOTING)
+        printf("The MAX and MIN element is %d and %d respectively.\n",data[maxpos],data[minpos]);
+
+      if ((data[maxpos] - avg) < (avg - data[minpos])) // assumming that MIN <= AVG <= MAX
+        printf("The element on position %d (%d) has the biggest difference from the average ( %4.2f ).\n\n",minpos+1,data[minpos],avg-data[minpos]);
+      else
+        printf("The element on position %d (%d) has the biggest difference from the average ( %4.2f ).\n\n",maxpos+1,data[maxpos],data[maxpos]-avg);
+    }
+  }*/
+  MPI_Finalize();
+  return 0;
+}
